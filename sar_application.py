@@ -131,8 +131,7 @@ class SimpleSwitch13(app_manager.RyuApp):
 			self.ip_to_mac["192.169.0.1"]  = "00:00:00:00:00:07"
 			self.ip_to_mac["192.170.0.1"]  = "00:00:00:00:00:08"			
 
-	def ls(self,obj):
-		print("\n".join([x for x in dir(obj) if x[0] != "_"]))
+	
 		
 		
 	def send_arp(self, datapath, opcode, srcMac, srcIp, dstMac, dstIp, outPort):
@@ -294,8 +293,8 @@ class SimpleSwitch13(app_manager.RyuApp):
 			#action_rule = "allow"	
 			#keep in mind that u need follow the order of calling the function based on your fuckin logic and script
 			binn_scr_ip=fromIPtoBinary(dst_ip)
-			print "=========given", binn_scr_ip
-			print "type", type(binn_scr_ip)
+			print "=========given:", binn_scr_ip
+			print "crafted from basic rule set:", self.classify["r1"][5]
 			f1=Tree()
 
 			i = 1
@@ -314,10 +313,11 @@ class SimpleSwitch13(app_manager.RyuApp):
 			#f1.add_node("11")
 
 
-			f1.add_rule("0",0,"rule8",None);
+			f1.add_rule("110000",0,self.classify["r1"][5],None);
 			f1.add_rule("11",0,"rule6",None);
 			f1.print_tree(f1.root)
-
+			ff=f1.finding_prefix("110000011",f1.root,0)
+			print "=========preifx is",ff
 
 			binary_version=fromIPtoBinary(src_ip)
 
@@ -572,6 +572,59 @@ class Tree():
     		[queue.append(node) for node in [head.left, head.right] if node]
     		if queue:
         		self.print_tree(queue.popleft(), queue)
+
+
+
+	def finding_prefix(self, IP_add_str, n1, i):
+			global last_prefix
+			#IP_add_bin = fromIPtoBinary(IP_add_str);
+			IP_add_bin = IP_add_str;		
+		
+			if last_prefix == '*':
+				#default address
+				return "*";
+			
+			#indice di ricerca < della lunghezza dell'indirizzo binario
+			if i<len(IP_add_bin):
+				
+				#carattere successivo dell'IP e' uno zero e nodo attuale ha un figlio
+				if IP_add_bin[i] == "0" and n1.left is not None:
+					i = i +1;
+					if n1.rule is not None:
+						last_prefix = n1.rule;
+					return self.finding_prefix(IP_add_str, n1.left, i);
+		
+				#carattere successivo dell'IP e' un uno e nodo attuale ha un figlio
+				elif IP_add_bin[i] == "1" and n1.right is not None:
+					i = i +1;
+					if n1.rule is not None:
+						last_prefix = n1.rule;
+					return self.finding_prefix(IP_add_str, n1.right, i);
+				
+				#se arrivo qui, non ho figli, sono in fondo all'albero	
+				else:
+					if n1.rule is not None:
+						print "searching stopped we are at rule\n"
+						return n1.rule;
+					else:
+						return last_prefix;
+			else:
+				#nessun matching finale, ritorno al prefisso salvato
+				print "\nSearching stopped: we found nothing, last prefix is : ", last_prefix
+				return last_prefix;
+
+
+
+
+
+
+
+#here we put additional script which is out of Class node , bcz we dont need to relate it inside the class
+
+
+
+
+
 
 
 
