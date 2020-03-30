@@ -24,6 +24,7 @@ from ryu.lib.packet import tcp
 from ryu.lib.packet import udp
 from ryu.ofproto import ether
 from ryu.app.ofctl.api import get_datapath
+from collections import deque
 
 # Packet Classification parameters
 SRC_IP = 0
@@ -128,17 +129,7 @@ class SimpleSwitch13(app_manager.RyuApp):
 			self.ip_to_mac["197.160.0.1"]   = "00:00:00:00:00:05"
 			self.ip_to_mac["192.168.0.1"]   = "00:00:00:00:00:06"
 			self.ip_to_mac["192.169.0.1"]  = "00:00:00:00:00:07"
-			self.ip_to_mac["192.170.0.1"]  = "00:00:00:00:00:08"	
-
-        ##########################################################
-        # Run here the code that must be execute just one time: at 
-        # the beginning of the simulation. For example the generation 
-        # of the tree in the IP lookup algorithms (DEFINED AT THE END 
-        # OF THE TEMPLATE). 
-
-        #tree = self.generation_tree()
-
-        ##########################################################		
+			self.ip_to_mac["192.170.0.1"]  = "00:00:00:00:00:08"			
 
 	def ls(self,obj):
 		print("\n".join([x for x in dir(obj) if x[0] != "_"]))
@@ -294,18 +285,49 @@ class SimpleSwitch13(app_manager.RyuApp):
 				dport = str(udp_pkt.dst_port)
 				
 			self.logger.info("Packet from the switch: %s, source IP: %s, destination IP: %s, From the port: %s", dpid_src, src_ip, dst_ip, in_port)
-
-#-----------PART OF THE CODE TO BE MODIFIED-------------------------------------------------------------------------------------------------
-            
+#############################################################################################################################			
 			# PACKET CLASSIFICATION FUNCTION: it returns action: "allow" or "deny"
-			# action_rule = self.linear_classification(src_ip, dst_ip, proto, sport, dport)
-			action_rule = "allow"	
+			#here we call our tree and function which were defined below of script 
+			#class TREE and NODE are out of Class SIMPLEswitch
+			#if here put code of call , the program will be called iteratively
+			action_rule = self.linear_classification(src_ip, dst_ip, proto, sport, dport)
+			#action_rule = "allow"	
+			length=0
+			last_prefix=None 
+			f1=Tree()
+			binary_version=fromIPtoBinary(src_ip)
+			
+			print "look at here", binary_version
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 			if action_rule == "allow":			
 				# IP LOOKUP FUNCTION: it is zero if it didn't find a solution
 				destination_switch_IP = self.linear_search(dst_ip)
-
-#----------------------------------------------------------------------------------------------------------------------------
 				
 				if destination_switch_IP != "0":
 					datapath_dst = get_datapath(self,int(self.switch[destination_switch_IP][DPID]))
@@ -396,9 +418,8 @@ class SimpleSwitch13(app_manager.RyuApp):
             #print "Novo link"
 	    #self.no_of_links += 1		
 
-#--------------------------------YOUR CODE MUST BE WRITTEN HERE----------------------------------------------------
-#------------------IP LOOKUP---------------------------------------------------------------------------------------
-
+#-------------------------------------------------------------------------------------------------------
+		
 	def linear_search(self, dst_ip):
 		self.logger.info(" --- IP address Lookup") 
 		if dst_ip in self.lookup:
@@ -407,14 +428,6 @@ class SimpleSwitch13(app_manager.RyuApp):
 		else:
 			destination_switch_IP = "0"
 			return destination_switch_IP
-
-    #def generation_tree(self):
-#
-#    #    tree = 'Generation of the Tree'
-#
-    #    return tree
-
-#------------------PACKET CLASSIFICATION---------------------------------------------------------------------------
 		
 	def linear_classification(self, src_ip, dst_ip, proto, sport, dport):
 		action = "deny"
@@ -434,8 +447,165 @@ class SimpleSwitch13(app_manager.RyuApp):
 				return action
 		
 		return action
+
+class Node():
+
+	#initialization of a node for the tree
+	def __init__(self,key):
+		self.key = key
+		self.left = None
+		self.right = None
+		self.parent = None
+		self.rule = None
+		
+	#adding a rule address to the tree
+	def add_rule(self, rule):
+		self.rule = rule;
 	
+  
+class Tree():
+        
+        #initialization of the tree setting the root to None
+        def __init__(self):
+		self.root = None
 	
+	#building the tree appending one node
+	def add_node(self,key,node=None):
+                global length
+                #setting the root
+		if node is None:
+			node = self.root
+		
+		if self.root is None:
+			self.root = Node(key)
+		else: 
+                        if (key[length]=='0'):
+                                length=length+1 
+				#adding left node      
+				if node.left is None:
+					node.left = Node(key)
+					node.left.parent = node
+                                        length=0
+					return 
+				else:
+					#adding nodes to the left one
+					return self.add_node(key,node = node.left)
+			else:
+                                length=length+1
+				#adding right node
+				if node.right is None:
+					node.right = Node(key)
+					node.right.parent = node
+                                        length=0
+					return 
+				else:
+					#adding nodes to the right one 
+					return self.add_node(key,node = node.right)
+	
+
+	
+
+############################################################################################################################
+	#searching a specific node to assign him a rulle		
+	def add_rule(self,key, l, rule, node):
+		if node is None:
+			node = self.root
+
+		if self.root.key == key:
+			print "key is at the root"
+			return self.root
+		else:
+			#### Never put rule a*, 0, 1 ####
+			
+			if len(node.key) == len(key):
+				#print "\nact", rule
+				#print "added to node: ", node.key
+				node.add_rule(rule)
+				l = 0
+				return 
+			elif key[l] == "0" and node.left is not None:
+				l = l + 1
+				return self.add_rule(key, l, rule, node = node.left)
+			
+			elif key[l] == "1" and node.right is not None:
+				l = l + 1
+				return self.add_rule(key, l, rule, node = node.right)
+			else:
+				l = 0;
+				return None
+	###################################################################################################################
+	#print of the tree with nodes ordered by level	
+	def print_tree(self, head, queue=deque()):
+		if head is None:
+       			return
+    		print "\nkey: ", head.key, "\nrule: ", head.rule
+		if head.right is not None:
+			print "Node right: ", head.right.key
+		else:	print "Node right:  --"
+		if head.left is not None:
+			print "Node left: ", head.left.key
+		else:	print "Node left:  --"
+    		[queue.append(node) for node in [head.left, head.right] if node]
+    		if queue:
+        		self.print_tree(queue.popleft(), queue)
+
+
+
+def fromBinarytoIP(string):
+	splitter = 8
+	divided = [string[i:i+splitter] for i in range(0, len(string), splitter)]
+	decimal = []
+	i = 0
+	while i < 4:
+		decimal.append(int(divided[i], 2))
+		i = i + 1
+	IPaddress = str(decimal[0])
+	for i in range(1,4):
+		IPaddress = IPaddress +'.'+ str(decimal[i])
+	return str(IPaddress)
+
+
+def fromIPtoBinary(string):
+	w1, w2, w3, w4 = string.split(".")
+	binaryN = [ str(bin(int(w1)))[2:], str(bin(int(w2)))[2:], str(bin(int(w3)))[2:], str(bin(int(w4)))[2:]]
+	binaryN = paddingAddress(binaryN)
+	addressIP = binaryN[0]
+	i=1
+	while i<4:
+		addressIP = addressIP+binaryN[i]
+		i=i+1
+	return str(addressIP)
+
+
+def paddingAddress(list):
+	i = 0
+	padded_list = list;
+	while i < len(list):
+		if len(list)<8:
+			while len(padded_list[i]) < 8:
+				padded_list[i] = '0' + padded_list[i]
+		i = i + 1
+	return padded_list
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 	
 app_manager.require_app('ryu.app.ws_topology')
 app_manager.require_app('ryu.app.ofctl_rest')
