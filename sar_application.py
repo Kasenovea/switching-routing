@@ -292,11 +292,35 @@ class SimpleSwitch13(app_manager.RyuApp):
 			#if here put code of call , the program will be called iteratively
 			action_rule = self.linear_classification(src_ip, dst_ip, proto, sport, dport)
 			#action_rule = "allow"	
-			length=0
-			last_prefix=None 
+			#keep in mind that u need follow the order of calling the function based on your fuckin logic and script
+			binn_scr_ip=fromIPtoBinary(dst_ip)
+			print "=========given", binn_scr_ip
+			print "type", type(binn_scr_ip)
 			f1=Tree()
+
+			i = 1
+			while i < len(binn_scr_ip):
+
+	
+			#print "look at me",binn_scr_ip[:i]
+	
+				f1.add_node(binn_scr_ip[:i])
+	
+				i += 1
+			#f1.add_node("*")
+			#f1.add_node("0")
+			#f1.add_node("1")
+			#f1.add_node("00")
+			#f1.add_node("11")
+
+
+			f1.add_rule("0",0,"rule8",None);
+			f1.add_rule("11",0,"rule6",None);
+			f1.print_tree(f1.root)
+
+
 			binary_version=fromIPtoBinary(src_ip)
-			
+
 			print "look at here", binary_version
 
 
@@ -594,7 +618,8 @@ def paddingAddress(list):
 
 
 
-
+length=0
+last_prefix=None 
 
 
 
