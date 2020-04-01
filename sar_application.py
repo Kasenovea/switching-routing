@@ -42,6 +42,7 @@ DPID   = 2
 # Topologies
 TOPO = 2
 
+
 class SimpleSwitch13(app_manager.RyuApp):
 	OFP_VERSIONS = [ofproto_v1_3.OFP_VERSION]
 	_CONTEXTS = {'wsgi': WSGIApplication}
@@ -285,6 +286,36 @@ class SimpleSwitch13(app_manager.RyuApp):
 				
 			self.logger.info("Packet from the switch: %s, source IP: %s, destination IP: %s, From the port: %s", dpid_src, src_ip, dst_ip, in_port)
 #############################################################################################################################			
+			
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 			# PACKET CLASSIFICATION FUNCTION: it returns action: "allow" or "deny"
 			#here we call our tree and function which were defined below of script 
 			#class TREE and NODE are out of Class SIMPLEswitch
@@ -292,32 +323,63 @@ class SimpleSwitch13(app_manager.RyuApp):
 			action_rule = self.linear_classification(src_ip, dst_ip, proto, sport, dport)
 			#action_rule = "allow"	
 			#keep in mind that u need follow the order of calling the function based on your fuckin logic and script
-			binn_scr_ip=fromIPtoBinary(dst_ip)
+			##############################################
+			#last issue 30.03.20 how obtain all rule from finding_prefix	
+			##############################################
+			binn_scr_ip=fromIPtoBinary(src_ip)
 			print "=========given:", binn_scr_ip
 			print "crafted from basic rule set:", self.classify["r1"][5]
+			
 			f1=Tree()
-
-			i = 1
-			while i < len(binn_scr_ip):
+			#f1.add_node("*")
+			#i = 1
+			#while i < len(binn_scr_ip):
 
 	
 			#print "look at me",binn_scr_ip[:i]
-	
-				f1.add_node(binn_scr_ip[:i])
-	
-				i += 1
-			#f1.add_node("*")
-			#f1.add_node("0")
-			#f1.add_node("1")
-			#f1.add_node("00")
-			#f1.add_node("11")
+			#
+			#	f1.add_node(binn_scr_ip[:i])
+	#
+			#	i += 1
+			f1.add_node("*")
+			f1.add_node("0")
+			f1.add_node("1")
+			f1.add_node("00")
+			f1.add_node("000")
+			f1.add_node("0000")
+			f1.add_node("001")
+			f1.add_node("0010")
+			f1.add_node("01")
+			f1.add_node("011")
+			f1.add_node("0110")
+			f1.add_node("11")
+			f1.add_node("111")
+			f1.add_node("1111")
+			f1.add_node("1110")
+			f1.add_node("110")
+			f1.add_node("1100")
+			f1.add_node("10")
+			f1.add_node("101")
+			f1.add_node("1010")
+
+						
+			
 
 
-			f1.add_rule("110000",0,self.classify["r1"][5],None);
-			f1.add_rule("11",0,"rule6",None);
-			f1.print_tree(f1.root)
-			ff=f1.finding_prefix("110000011",f1.root,0)
+			f1.add_rule("0000",0,"rule1",None);
+			f1.add_rule("0010",0,"rule2",None);
+			f1.add_rule("0110",0,"rule3",None);
+			f1.add_rule("011",0,"rule4",None);
+			f1.add_rule("1010",0,"rule5",None);
+			f1.add_rule("1100",0,"rule6",None);
+			f1.add_rule("1110",0,"rule7",None);
+			f1.add_rule("1111",0,"rule8",None);
+			#f1.print_tree(f1.root) #here print tree works dont touch this row
+			ff=f1.finding_prefix("011111111",f1.root,0)
+
+
 			print "=========preifx is",ff
+
 
 			binary_version=fromIPtoBinary(src_ip)
 
@@ -573,52 +635,82 @@ class Tree():
     		if queue:
         		self.print_tree(queue.popleft(), queue)
 
-
-
+        
 	def finding_prefix(self, IP_add_str, n1, i):
-			global last_prefix
-			#IP_add_bin = fromIPtoBinary(IP_add_str);
-			IP_add_bin = IP_add_str;		
+		global last_prefix
+		global data
+        
+		#global data
+		#IP_add_bin = fromIPtoBinary(IP_add_str);
+		IP_add_bin = IP_add_str;		
 		
-			if last_prefix == '*':
-				#default address
-				return "*";
+		##############################
+		
+
+		data=[]		
+		data.append(n1.rule)
+		print "--------eee", n1.rule
+		print "all data========", len(data)
+		#data.append(last_prefix)
+
+
+		#print "ddd", data
+			###################################################
+
+		if last_prefix == '*':
+			#default address
+			return "*";
 			
-			#indice di ricerca < della lunghezza dell'indirizzo binario
-			if i<len(IP_add_bin):
+		# search index < of binary address length
+		if i<len(IP_add_bin):
+			
+			data.append(last_prefix)
+			#print "banch of rules at each level", data
+			# next character of the IP is a zero and current node has a child
+			if IP_add_bin[i] == "0" and n1.left is not None:
+				i = i +1;
+
+				if n1.rule is not None:
+					data.append(last_prefix)
+					last_prefix= n1.rule;
+					#print "sss", last_prefix
+				return self.finding_prefix(IP_add_str, n1.left, i);
+
+			# next character of the IP is a one and current node has a child
+
+			elif IP_add_bin[i] == "1" and n1.right is not None:
+				i = i +1;
 				
-				#carattere successivo dell'IP e' uno zero e nodo attuale ha un figlio
-				if IP_add_bin[i] == "0" and n1.left is not None:
-					i = i +1;
-					if n1.rule is not None:
-						last_prefix = n1.rule;
-					return self.finding_prefix(IP_add_str, n1.left, i);
-		
-				#carattere successivo dell'IP e' un uno e nodo attuale ha un figlio
-				elif IP_add_bin[i] == "1" and n1.right is not None:
-					i = i +1;
-					if n1.rule is not None:
-						last_prefix = n1.rule;
-					return self.finding_prefix(IP_add_str, n1.right, i);
-				
-				#se arrivo qui, non ho figli, sono in fondo all'albero	
-				else:
-					if n1.rule is not None:
-						print "searching stopped we are at rule\n"
-						return n1.rule;
-					else:
-						return last_prefix;
+
+				if n1.rule is not None:
+					last_prefix = n1.rule;
+					#print "ddd", last_prefix	
+				return self.finding_prefix(IP_add_str, n1.right, i);
+			
+
+			# if I get here, I don't have kids, I'm at the bottom of the tree
 			else:
-				#nessun matching finale, ritorno al prefisso salvato
-				print "\nSearching stopped: we found nothing, last prefix is : ", last_prefix
-				return last_prefix;
+
+				if n1.rule is not None:
+					
+					print "searching stopped we are at rule"
+					return n1.rule;
+					print "=========smotri",data
+				else:
+					return last_prefix;
+		else:
+			
+
+			## no final matching, return to saved prefix
+			print "\nSearching stopped: we found nothing, last prefix is : ", last_prefix
+			return last_prefix;
 
 
+	
 
+		
 
-
-
-
+		
 #here we put additional script which is out of Class node , bcz we dont need to relate it inside the class
 
 
@@ -675,6 +767,46 @@ length=0
 last_prefix=None 
 
 
+
+#f2=Tree()
+#f2.add_node("*")
+##f2.add_node_F2("0")
+#f2.add_node("1")
+##f2.add_node_F2("00")
+#f2.add_node("0")
+#f2.add_node("00")
+#f2.add_node("000")
+#f2.add_node("0000")
+#f2.add_node("0001")
+#f2.add_node("01")
+#f2.add_node("010")
+#f2.add_node("0100")
+#f2.add_node("0101")
+#f2.add_node("011")
+#f2.add_node("0110")
+#f2.add_node("11")
+#f2.add_node("111")
+#f2.add_node("1111")
+#f2.add_node("10")
+#f2.add_node("100")
+#f2.add_node("1000")
+#f2.add_node("1001")
+
+
+
+
+
+
+#adding rule 
+
+#f2.add_rule("1001",0,"rule1",None)
+#f2.add_rule("1000",0,"rule2",None)
+#f2.add_rule("0101",0,"rule3",None)
+#f2.add_rule("0110",0,"rule4",None)
+#f2.add_rule("0100",0,"rule5",None)
+#f2.add_rule("0001",0,"rule6",None)
+#f2.add_rule("0100",0,"rule7",None)
+#f2.add_rule("1111",0,"rule8",None)
 
 
 
